@@ -1,0 +1,12 @@
+{
+	"name": "dmarketcalls",
+	"authors": [
+		"erdem"
+	],
+	"dependencies": {
+		"vibe-d": "~>0.8.2"
+	},
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2018, erdem",
+	"license": "proprietary"
+}

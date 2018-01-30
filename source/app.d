@@ -9,8 +9,11 @@ void main()
 	//  **************** Gecmis Islemler Cagrisi (History Call) *************** / 
 	// Asagidaki cagri son 30 saniye icinde yapilan hacmi gosteriyor. Ve ekrana sunu yazdiriyor 
 	// "ETH History data:  Total BTC traded : 0.482065 Total Buys BTC: 0.471851 Transacrion count: 10 Buy count: 9"
-	// Bir alis veris iki sekilde olabilir. Elma(Bu ornekte elma ETH'a denk geliyor) satmaya calisan biri 11 liraya(Lira ise BTC'ye) satmak ister. Fakat almak isteyenler buna yanasmayip 9 lira vermek isteyebilirler. 
-	// Asagida 0.482 BTC hacmi toplam 9 liraya satanlar ve 11 Liraya alanlari iceriyor. 0.471 ise sadece 11 Liraya alanlari iceriyor. Satis fiyatindan islem gorulmesi bu marketin yukselicegi manasina gelebilir. 
+	// Bir alis veris iki sekilde olabilir. Elma(Bu ornekte elma ETH'a denk geliyor) satmaya calisan biri 11 liraya(Lira ise BTC'ye) 
+	//satmak ister. Fakat almak isteyenler buna yanasmayip 9 lira vermek isteyebilirler. 
+	// Asagida 0.482 BTC hacmi toplam 9 liraya satanlar ve 11 Liraya alanlari iceriyor. 0.471 ise sadece 11 Liraya alanlari iceriyor.
+	// Satis fiyatindan islem gorulmesi bu marketin yukselicegi manasina gelebilir. Bunun yani sira 10 islem olduğu ve bunlarin 9'unun 
+	// satis fiyatindan islem gordugu belirtiliyor. 
 	
 	// This call prints that:  
 	// "ETH History data:  Total BTC traded : 0.482065 Total Buys BTC: 0.471851 Transacrion count: 10 Buy count: 9"

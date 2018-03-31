@@ -1,29 +1,11 @@
 module Client.BinanceClientHelper;
 
-public import vibe.data.json;
-public import std.typecons;
+public import Utility.Config;
 
-import std.digest.sha;
-import std.string;
 import std.digest.hmac;
 import std.datetime ;
-import std.stdio ;
-import std.algorithm;
-import std.array;
-import std.conv;
-import std.uuid;
-import vibe.core.log;
+import std.digest.sha;
 import vibe.http.client;
-import vibe.stream.operations;
-import vibe.crypto.cryptorand;
-import std.digest.digest;
-import vibe.http.auth.basic_auth;
-import vibe.http.websockets;
-import deimos.openssl.hmac;
-
-string apikey=" write your api key ";
-string apisecret="write your api secret ";
-
 
 bool PublicMarketCall( string url,  ref Json result )
 {
@@ -53,19 +35,17 @@ bool PublicMarketCall( string url,  ref Json result )
 	return true;
 }
 
-bool PrivateMarketCall( string paramUrl, string quaryStr, ref Json result, HTTPMethod method, bool writeUrl = true)
+bool PrivateMarketCall( string paramUrl, string quaryStr, ref Json result, HTTPMethod method)
 {
     auto systime = Clock.currTime(UTC());
     string time = systime.toUnixTime.to!string ~ systime.fracSec.msecs.to!string;
 	string url = "https://api.binance.com/api/v3/" ~ paramUrl ~ "?";
 	
-		writeln( "Binanace private call: ",  url );
-	
 	try
 	{
 		char[] quary = quaryStr.dup;
 		quary ~=  ("&timestamp=" ~ time ~ "&recvWindow=10000").dup  ;		
-		auto hmac = HMAC!SHA256(apisecret.representation);
+		auto hmac = HMAC!SHA256(secret.representation);
 		hmac.put(quary.representation);
 		auto generatedHmac = hmac.finish();
 		string generatedHmacStr = std.digest.digest.toHexString(generatedHmac);
@@ -79,8 +59,7 @@ bool PrivateMarketCall( string paramUrl, string quaryStr, ref Json result, HTTPM
 		requestHTTP(url.dup,
 			(scope req) {
 				req.method = method; 
-				//req.writeBody( quary.representation() );
-				req.headers["X-MBX-APIKEY"] = apikey;
+				req.headers["X-MBX-APIKEY"] = key;
 			},
 			(scope res) {
 				result = parseJsonString(res.bodyReader.readAllUTF8());	
@@ -97,74 +76,6 @@ bool PrivateMarketCall( string paramUrl, string quaryStr, ref Json result, HTTPM
 	{
 		writeln("Exception was caught while binance private data: ", url);
 		return false;
-	}
-	return true;
-}
-
-bool PrivateMarketGetCall( string paramUrl, ref Json result, bool writeUrl = true)
-{
-    auto systime = Clock.currTime(UTC());
-    string time = systime.toUnixTime.to!string ~ 	systime.fracSec.msecs.to!string;
-	string url = "https://api.binance.com/api/v3/" ~ paramUrl;
-	if ( writeUrl )
-		writeln( "Binanace private call: ",  url );
-	
-	try
-	{
-		string quary = "timestamp=" ~ time ~ "&recvWindow=5000";
-		url ~= quary;
-		auto hmac = HMAC!SHA256(apisecret.representation);
-		hmac.put(quary.representation);
-		auto generatedHmac = hmac.finish();
-		string generatedHmacStr = std.digest.digest.toHexString!(LetterCase.lower)(generatedHmac);
-
-		url ~= "&signature=";
-		url ~= generatedHmacStr;
-		requestHTTP(url.dup,
-			(scope req) {
-				req.method = HTTPMethod.GET;
-				//req.writeFormBody( parameters );
-				req.headers["X-MBX-APIKEY"] = apikey;
-			},
-			(scope res) {
-				result = parseJsonString(res.bodyReader.readAllUTF8());
-			}
-		);
-	}
-	catch ( std.json.JSONException e )
-	{
-		writeln("Exception was caught while making the binance private call: ", url);
-		return false;
-	}
-	
-	scope(failure)
-	{
-		writeln("Exception was caught while binance private data: ", url);
-		return false;
-	}
-	return true;
-}
-
-void handleConn(scope WebSocket sock)
-{
-	// simple echo server
-	while (sock.connected) {
-		auto msg = sock.receiveText();
-		writeln( Clock.currTime().toSimpleString(), msg);
-	}
-}
-
-bool SocketCall( string url, ref string output )
-{
-	auto ws_url = URL( "wss://stream.binance.com:9443/ws/" ~ url );
-	auto ws = connectWebSocket(ws_url);
-	logInfo( url ~ "WebSocket connected");
-	
-	while (ws.waitForData())
-	{
-		auto txt = ws.receiveText;
-		logInfo("Received: %s", txt);
-		writeln( "Time: ", Clock.currTime().toSimpleString());
 	}
 	return true;
 }

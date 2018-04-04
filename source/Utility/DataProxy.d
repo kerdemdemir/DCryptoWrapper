@@ -14,15 +14,15 @@ struct DataProxy
 	
 	void UpdateTick( ref const TickData data)
 	{
-		analyzeData.prevTickData =  analyzeData.tickData;
-		analyzeData.tickData = data;		
+		prevTick = tick;
+		tick = data;		
 	}
 	
     string ToString()
     {
-    	return " Tick: " ~ ToString(tick) ~ " Prev Tick: " ~ to!string(prevTick) ~ 
-		       " HistoryData: " ~ ToString(historyData) ~ " OrderBook: " ~ to!string(orderData) ~
-		       " TradeData: " ~ ToString(tradeData) ~ " QuantityData: " ~ to!string(quantityData);
+    	return " Tick: " ~ tick.ToString() ~ " Prev Tick: " ~ prevTick.ToString() ~ 
+		       " HistoryData: " ~ historyData.ToString() ~ " OrderBook: " ~ orderData.ToString() ~
+		       " TradeData: " ~ tradeData.ToString() ~ " QuantityData: " ~ quantityData.ToString();
     }
 }
 

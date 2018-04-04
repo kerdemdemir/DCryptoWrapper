@@ -1,6 +1,7 @@
 module Currencies.CurrencyList;
 
 public import Currencies.Currency;
+public import Utility.Config;
 
 struct CurrencyList
 {
@@ -19,17 +20,12 @@ struct CurrencyList
 	void InitCurrency( string name )
 	{
 		Currency currency = GetWithName( name );
-		if ( p is null )
+		if ( currency is null )
 		{
 			currency = new Currency(name);
 			currencyList ~= currency;
 		}
 	}	
-	
-	Currency[] GetWithPriority( PriorityEnum priority )
-	{
-		return currencyList.values.filter!( a => a.GetPriority() == priority).array();
-	}
 	
 	Currency GetWithMarketName( string marketName )
 	{
@@ -50,6 +46,10 @@ struct CurrencyList
 	
 	Currency GetWithName( string currencyName )
 	{
+		import std.algorithm : canFind;
+		import std.algorithm : find;
+		import std.range;
+		
 		if ( currencyList.canFind(currencyName) )
 			return currencyList.find(currencyName).front;
 		return null;

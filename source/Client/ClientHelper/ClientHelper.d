@@ -1,25 +1,23 @@
-module Client.ClientHelper;
+module Client.ClientHelper.ClientHelper;
 
 public import vibe.data.json;
 public import vibe.http.common : HTTPMethod;
+public import std.string;
 
-class ClientHelper
+struct KeySecretStruct
 {
 	string key;
 	string secret;
 	
 	this( string apikey, string apisecret )
 	{
+		SetKeyAndSecret( apikey, apisecret );
+	}
+	
+	void SetKeyAndSecret( string apikey, string apisecret )
+	{
 		this.key    = apikey;
 		this.secret = apisecret;
 	}
-	
-	this()
-	{
-		
-	}
-	
-	bool PublicCall( string url,  ref Json result );
-	bool PrivateMarketCall( string url, string quary, ref Json result, HTTPMethod method );
 
 }	

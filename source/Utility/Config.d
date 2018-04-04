@@ -1,6 +1,7 @@
-module Utility.Conf;
+module Utility.Config;
  
 public import Utility.Enums; 
+public import std.datetime : SysTime;
  
 bool IsDoubleSane( double val )
 {
@@ -65,8 +66,6 @@ public:
 	string   apiSecret;
 	string   apiKey;
 	SysTime  loopStartTime;	
-private:	
-
 	string[] blackListCurrencies;
 	string   tradingCurrency;
 	MarketType marketType;

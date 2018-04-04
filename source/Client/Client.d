@@ -1,23 +1,17 @@
 module Client.Client;
 
-public import std.uuid : UUID;
-public import std.datetime : Duration;
+public import Currencies.CurrencyList;
 
-
-interface IClient
-{
-	//Private calls 
-	bool Buy( string name, string txname, double price, double quantity );
-	bool Sell( string name, string txname, double price, double quantity, bool isLimit );
-	bool Cancel( UUID uuid );
-	bool GetAndCheckBalances();
-	bool CheckOpenOrders();
-	
-	//Public calls 
-	bool GetAnalyzeData();
-	bool GetMarketHistory( string name, string txname, Duration duration );
-	bool GetOrderBook( string name, string txname, double buyTarget, double sellTarget );
-	TickData GetTickData( string name, string marketName  );
-	   
-}
-
+//interface IClient
+//{
+//	bool Buy( Currency currency, double price, double investRatio  );
+//	bool Sell( Currency currency, double price, bool isLimit );
+//	bool Cancel( Currency currency, bool isBuy );
+//	
+//	bool Update( CurrencyList currencyList );
+//	bool GetOpenOrders( CurrencyList currencies );
+//	bool GetBalances( CurrencyList currencyList );
+//	bool GetMarketHistory( Currency currency, Duration duration );
+//	bool GetOrderBook( Currency currency, double buyTarget, double sellTarget );
+//}
+//

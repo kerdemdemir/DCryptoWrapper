@@ -1,6 +1,6 @@
 module Utility.Data;
 
-public import Utility.Conf;
+public import Utility.Config;
 public import Utility.Enums;
 public import std.conv : to;
 public import std.string;
@@ -26,14 +26,14 @@ struct TickData
 
 struct HistoryData
 {
-	double totalBTC = 0.0;
+	double total = 0.0;
+	double totalBuy = 0.0;
 	double transactionCount = 0.0;
 	double buyCount = 0.0;
-	double totalBuyInBTC = 0.0;
-	
+
     string ToString()
     {
-    	return  " Total BTC traded : " ~ to!string(totalBTC) ~ " Total Buys BTC: " ~ to!string(totalBuyInBTC) ~ " Transacrion count: " ~  to!string(transactionCount) ~ " Buy count: " ~ to!string(buyCount) ;
+    	return  " Total traded: " ~ to!string(total) ~ " Total Buys: " ~ to!string(totalBuy) ~ " Transacrion count: " ~  to!string(transactionCount) ~ " Buy count: " ~ to!string(buyCount) ;
     }
 }
 
@@ -41,12 +41,12 @@ struct OrderBook
 {
 	double bookBuyRange = 0.0;
 	double bookSellRange = 0.0;
-	double bookLevel = 0.0;
+	double bookLongSellRange = 0.0;
 		
     string ToString()
     {
     	return  " Order Book Buy Power : " ~ to!string(bookBuyRange) ~ " Order Book Sell Power : " 
-		    	~ to!string(bookSellRange) ~ to!string(bookLevel);
+		    	~ to!string(bookSellRange) ~ " Long Sell Power: " ~ to!string(bookLongSellRange);
     }
 }
 
@@ -54,7 +54,6 @@ struct TradeData
 {
 	import std.uuid : UUID;
 	import std.datetime : DateTime;
-	import vibe.data : Json;
 
 	UUID   sellOrderID;
 	UUID   buyOrderID;
@@ -88,7 +87,7 @@ struct QuantityData
 	
 	string ToString()
     {
-    	return " Owned " ~ to!string(quantityOwned) ~ "Avaliable: " ~ to!string(quantityAvaliable);	
+    	return " Owned " ~ to!string(owned) ~ "Avaliable: " ~ to!string(avaliable);	
 	}
 }
 

@@ -15,6 +15,10 @@ class Currency
 	
 	bool opEquals(ref const Currency rhs) { 
 		return name == rhs.name;
-	 }    
+	} 
+	
+	bool opEquals(ref const string rhs) { 
+		return name == rhs;
+	}       
 }
 

@@ -11,6 +11,7 @@ import vibe.http.client;
 import std.stdio;
 import vibe.stream.operations : readAllUTF8;
 import vibe.http.websockets;
+import vibe.core.core : sleep;
 
 class BinanceHelper
 {
@@ -89,28 +90,75 @@ class BinanceHelper
 		return true;
 	}	
 	
+	bool LaunchSocket(CallBack)( string name, string txName, string streamName, 
+								 int maxSeconds, CallBack callBackfunction )
+	{
+		auto isCreated = InitSocket( name, txName, streamName);
+		if ( isCreated )
+		{
+			auto result = vibe.core.concurrency.async( &CallBackLoop!(CallBack), name, txName, streamName, callBackfunction ); 
+			while ( maxSeconds-- )
+			{
+				sleep(1.seconds);
+				if ( result.ready() )
+				{
+					CloseSocket( name, txName, streamName);
+					return false;
+				}
+			} 
+		}
+		CloseSocket( name, txName, streamName);
+		return true;
+	}	
 	
-	short InitSocket(CallBack)( string name, string txName, string streamName, CallBack  )
+	bool CloseSocket( string name, string txName, string streamName )
+	{
+		string uniqStreamName = name ~ txName ~ "@" ~ streamName;
+		auto socket = (uniqStreamName in sockets);
+		if ( !socket )
+		{
+			writeln( " Socket which is to be removed does not exists ");
+			return false;
+		}
+		auto returnVal = sockets.remove(uniqStreamName);
+		socket.close();
+		return returnVal;
+	}
+	
+private:
+	
+	bool InitSocket( string name, string txName, string streamName )
 	{
 		import std.uni : toLower;
-		string uniqStreamName = name.toLower() ~ txName.toLower() ~ "@" ~ streamName;
+		string uniqStreamName = name ~ txName ~ "@" ~ streamName;
 		
 		if ( uniqStreamName in sockets ) 
 		{
 			writeln( "Socket with unique name: ", uniqStreamName, " was already existed will return"  );
-			return -1;
+			return false;
 		}
 		auto ws_url = URL("wss://stream.binance.com:9443/ws/" ~ uniqStreamName);
 		auto ws = connectWebSocket(ws_url);
 		if ( !ws.connected )
-			return -1;
+			return false;
 		sockets[uniqStreamName] = ws;
-		
-		while (ws.waitForData())
+		return true;
+	}
+	
+	short CallBackLoop(CallBack)( string name, string txName, string streamName, CallBack callBackfunction )
+	{
+		string uniqStreamName = name ~ txName ~ "@" ~ streamName;
+		auto socket = (uniqStreamName in sockets);
+		if ( !socket ) 
+		{
+			writeln(" Please be sure socket is initiliazed" );
+			return -1;
+		}		
+		while (socket && socket.waitForData())
 		{
 			try
 			{
-				Json result = parseJsonString(ws.receiveText);
+				Json result = parseJsonString(socket.receiveText);
 				callBackfunction(result);
 			}
 			catch ( std.json.JSONException e )
@@ -119,18 +167,11 @@ class BinanceHelper
 				continue;
 			}
 		}
-		CloseSocket(name.toLower(), txName.toLower(), streamName);
-		writeln( "Socket will be closed reason was: ", ws.closeReason );
-		return ws.closeCode;		
+		CloseSocket(name, txName, streamName);
+		writeln( "Socket will be closed reason was: ", socket.closeReason );
+		return socket.closeCode;		
 	}
 	
-	bool CloseSocket( string name, string txName, string streamName )
-	{
-		string uniqStreamName = name ~ txName ~ "@" ~ streamName;
-		return sockets.remove(uniqStreamName);
-	}
-	
-private:
 	WebSocket[string] sockets;
 }
 
@@ -138,8 +179,8 @@ unittest
 {
 	import vibe.core.sync;
 	import vibe.core.concurrency;
-	import vibe.core.core;
 
+	
 	writeln( "***** BinanceHelper Tests  *****" );
 
 	auto helper = new BinanceHelper();
@@ -149,9 +190,15 @@ unittest
 		writeln(json);
 	}
 	
-	vibe.core.concurrency.async(  helper.InitSocket, "iota", "btc", "aggTrade", &testFoo ); 
+	// This is a basic test for blocking call for LaunchSocket
+	assert (helper.LaunchSocket!((typeof(&testFoo)))("eth", "btc", "aggTrade", 10, &testFoo )); 
 	
-	//helper.CloseSocket( "eth", "btc", "aggTrade");
+	// I expect LaunchSocket to be called with async normally 
+	auto result = vibe.core.concurrency.async( &helper.LaunchSocket!((typeof(&testFoo))),"eth", "btc", "aggTrade", 30, &testFoo ); 
+	sleep(2.seconds);
+	helper.CloseSocket("eth", "btc", "aggTrade");
+	//Premature close result should be close 
+	assert( !result.ready() );
 }
 
 

@@ -8,6 +8,22 @@ bool IsDoubleSane( double val )
 	return val < double.infinity && val != double.nan && val > 0.0;
 }
 
+struct PreciseDouble
+{
+	enum PRICE_EPSILON = 0.00000001;
+	
+    double val;
+    size_t toHash() const
+    {
+		return cast(size_t)(this.val*(1.0/PRICE_EPSILON));
+    }
+
+    bool opEquals(ref const PreciseDouble rhs) const
+    {
+        return (rhs.val - this.val) < PRICE_EPSILON;
+    }
+}
+
 
 class Config 
 {

@@ -60,6 +60,7 @@ class BinanceHelper
 	bool PrivateCall( string paramUrl, string quaryStr, ref Json result, HTTPMethod method)
 	{
 		import std.conv : to;
+		import std.digest : toHexString;
 		
 	    auto systime = Clock.currTime(UTC());
 	    string time = systime.toUnixTime.to!string ~ systime.fracSec.msecs.to!string;
@@ -72,7 +73,7 @@ class BinanceHelper
 			auto hmac = HMAC!SHA256(keySecret.secret.representation);
 			hmac.put(quary.representation);
 			auto generatedHmac = hmac.finish();
-			string generatedHmacStr = std.digest.digest.toHexString(generatedHmac);
+			string generatedHmacStr = std.digest.toHexString(generatedHmac);
 			
 			quary ~= "&signature=";
 			quary ~= generatedHmacStr.dup;

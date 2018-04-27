@@ -2,6 +2,7 @@ module Client.ClientWrapper.BinanceWrapper;
 
 import Client.ClientHelper.BinanceHelper;
 import Client.ClientWrapper.ClientWrapper;
+import Client.ClientWrapper.SocketWrapperHelper;
 
 public import std.uuid;
 import std.stdio;
@@ -9,153 +10,6 @@ import std.datetime;
 import std.container.dlist;
 
 enum SocketListSize = 1000;
-
-class OrderBookSocketHelper
-{
-public:
-	
-	void Process( Json data )
-    {
-    	Json bids = data["b"];
-    	Json asks = data["a"];
-    	
-    	ApplyToMap( orderBookBid, bids );
-    	ApplyToMap( orderBookAsks, asks );
-
-    }
-    
-    double CalculatePower( double ratioFromFirst, bool isBid )
-    {
-    	import std.algorithm;
-    	import std.array;
-    	double[PreciseDouble] bidOrAskMap = isBid ? orderBookBid : orderBookAsks;
-    	auto keys = bidOrAskMap.keys().sort!( (a,b) => isBid ?  a.val > b.val : a.val < b.val );
-    	double firstVal = keys.front().val;
-    	double stopVal = firstVal * ratioFromFirst;
-    	auto doubleRange = keys.filter!( a=> isBid ? a.val > stopVal
-    		                                       : a.val < stopVal).map!( a=> a.val);
-    	double result = doubleRange.fold!( (a,b) => a + CalculatePowerForKey(b, bidOrAskMap) )(0.0);  
-	    return result;
-    }
-    
-    void CalculateWithRawJson( ref Json data )
-    {
- 		auto askJson = data["asks"];
- 		auto bidJson = data["bids"];
-	 		 	
- 		InsertRawJson( orderBookAsks, askJson);
- 		InsertRawJson( orderBookBid, bidJson);
-    }
-    
-private:
-
-	void InsertRawJson( ref double[PreciseDouble] mapParam, ref Json json)
-	{	
-		if ( json.type() != Json.Type.array )
-		{
-			writeln(" Initing array is not possible with this json which is not array " );
-			return;
-		}
-		for ( int i = 0; i < json.length; i++ )
-		{
-			double rate= json[i][0].to!double;
-			double quantity  = json[i][1].to!double;
-			PreciseDouble key = PreciseDouble(rate);
-			mapParam[key] = quantity;
-		}		
-	}
-
-	double CalculatePowerForKey( double keyVal, ref double[PreciseDouble] mapParam)
-	{
-		PreciseDouble key = PreciseDouble(keyVal);
-		double* result =  key in mapParam;
-		if ( !result )
-		{
-			writeln(key);
-			return 0.0;
-		}
-		return (*result)*keyVal;
-	}
-    
-    void ApplyToMap( ref double[PreciseDouble] map, Json data )
-    {
-    	import std.math : approxEqual;
-    	
-  		for ( int i = 0; i < data.length; i++ )
-		{
-			double price = data[i][0].to!double();
-			double quantity = data[i][1].to!double();
-			PreciseDouble curVal = PreciseDouble(price);
-			if ( approxEqual(quantity, 0.0) )
-			{
-				map.remove(curVal);
-			}
-			else 
-			{
-				map[curVal]	 = quantity;		
-			}
-		}		  	
-    }
-    
-	double[PreciseDouble] orderBookAsks;
-	double[PreciseDouble] orderBookBid;
-}
-
-HistoryData CalculateHistoryDataFromJson( Json inData, Duration duration )
-{
-	HistoryData data;
-	long startDate;
-	for ( int i = 0; i < inData.length; i++ )
-	{
-		long date = inData[i]["T"].to!long / 1000 ;
-		if ( i == 0)
-			startDate = date;
-		Duration tempDuration = (startDate - date ).seconds;
-		if ( tempDuration > duration  )
-			break;	
-		
-		data.transactionCount += 1;
-		double quantity = inData[i]["q"].to!double;
-		double price = inData[i]["p"].to!double;
-		double curPower = quantity*price;
-		data.total += curPower;
-		if ( !inData[i]["m"].to!bool ) 
-		{
-			data.buyCount++;
-			data.totalBuy += curPower;
-		}			
-  	}
-	return data;	
-}
-
-HistoryData CalculateHistoryDataFromJson( DList!(Json)* inData, Duration duration )
-{
-	HistoryData data;
-	long startDate;
-	auto range = (*inData)[];
-	int i = 0;
-	foreach ( jsonData; range )
-	{
-		long date = jsonData["T"].to!long / 1000 ;
-		if ( i++ == 0)
-			startDate = date;
-		Duration tempDuration = (startDate - date).seconds;
-		if ( tempDuration > duration  )
-			break;	
-		
-		data.transactionCount += 1;
-		double quantity = jsonData["q"].to!double;
-		double price = jsonData["p"].to!double;
-		double curPower = quantity*price;
-		data.total += curPower;
-		if ( !jsonData["m"].to!bool ) 
-		{
-			data.buyCount++;
-			data.totalBuy += curPower;
-		}			
-  	}
-	return data;	
-}
 		
 class BinanceWrapper : ClientWrapper
 {
@@ -225,19 +79,19 @@ class BinanceWrapper : ClientWrapper
 		
 		void CallBackFoo( Json data )
 		{
-			InsertSocketDataToList(name, txName, "aggTrade", data);	
+			InsertSocketDataToList(name, txName, data);	
 		}	
 		 
 		try 
 		{
-		    if ( !GetListData( name, txName, "aggTrade" ) )
+		    if ( !GetListData( name, txName ) )
 		    {
 				Json resultJson;
 				string urlName = "aggTrades?symbol="  ~ name.toUpper() ~ txName.toUpper();
 				bool isSuccess = helper.PublicCall(urlName, resultJson);	
 				if ( !isSuccess )
 					return false;
-				InsertSocketDataToList(name, txName, "aggTrade", resultJson);
+				InsertSocketDataToList(name, txName, resultJson);
 				
 				vibe.core.concurrency.async( 
 						{ return this.helper.LaunchSocket(name, txName, "aggTrade", &CallBackFoo );}
@@ -248,7 +102,7 @@ class BinanceWrapper : ClientWrapper
 		    	this.helper.KeepSocketAlive(name, txName, "aggTrade");
 		    }
 		    
-		    auto listData = GetListData( name, txName, "aggTrade" );
+		    auto listData = GetListData( name, txName );
 		    if ( !listData )
 			    return false;
 			data = CalculateHistoryDataFromJson( listData, duration );			
@@ -292,7 +146,6 @@ class BinanceWrapper : ClientWrapper
 		
 		void CallBackFoo( Json data )
 		{
-			writeln(data);
 			ulong updateID = data["u"].to!ulong;
 			if ( lastUpdateID > updateID )
 				return;
@@ -499,17 +352,17 @@ class BinanceWrapper : ClientWrapper
 	
 private:
 	
-	void InsertSocketDataToList( string name, string txName, string streamName, Json data )
+	void InsertSocketDataToList( string name, string txName, Json data )
 	{
 		import std.range : walkLength;
 		
-		auto socketData = GetListData( name, txName, streamName);
+		auto socketData = GetListData( name, txName);
 		if ( !socketData ) 
 		{
-			string uniqStreamName = name ~ txName ~ "@" ~ streamName;
+			string uniqStreamName = name ~ txName;
 			socketData = new DList!Json;
 			socketDataList[uniqStreamName] = *socketData;
-			InsertSocketDataToList(name, txName, streamName, data);
+			InsertSocketDataToList(name, txName, data);
 		}
 		
 		try 
@@ -539,11 +392,11 @@ private:
 		}						
 	}
 	
-	DList!(Json)* GetListData(  string name, string txName, string streamName )
+	DList!(Json)* GetListData(  string name, string txName )
 	{
 		import std.range : popFrontN;
 		
-		string uniqStreamName = name ~ txName ~ "@" ~ streamName;
+		string uniqStreamName = name ~ txName;
 		auto socketData = (uniqStreamName in socketDataList);
 		return socketData;
 	}
